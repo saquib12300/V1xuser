@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login</title>
+
+    <!-- FontAwesome & Tailwind -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD89CQpILmaxVdH-X7L-Ex4rW-XIBA3vHU",
+            authDomain: "webai-b6629.firebaseapp.com",
+            databaseURL: "https://webai-b6629-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "webai-b6629",
+            storageBucket: "webai-b6629.appspot.com",
+            messagingSenderId: "358930931757",
+            appId: "1:358930931757:web:ed7b1ab7274bbdb3b7d8a4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const keyInput = document.getElementById("keyInput");
+            const loginBtn = document.getElementById("loginBtn");
+            const messageText = document.getElementById("messageText");
+            const buyLink = document.getElementById("buyLink");
+            const deviceID = navigator.userAgent || "UnknownDevice"; // Get device info
+
+            buyLink.addEventListener("click", () => {
+                window.location.href = "https://t.me/Aneaxity";
+            });
+
+            loginBtn.addEventListener("click", async () => {
+                const key = keyInput.value.trim();
+                if (key === "") return;
+
+                const snapshot = await get(ref(db, "keys"));
+                if (!snapshot.exists()) {
+                    messageText.textContent = "KEY WASN'T EXIST";
+                    messageText.className = "text-red-500 font-bold";
+                    return;
+                }
+
+                let keyFound = false;
+                let keyID = null;
+                let existingDevice = null;
+
+                snapshot.forEach(childSnapshot => {
+                    const data = childSnapshot.val();
+                    if (data.key === key) {
+                        keyFound = true;
+                        keyID = childSnapshot.key;
+                        existingDevice = data.deviceID;
+                    }
+                });
+
+                if (!keyFound) {
+                    messageText.textContent = "KEY WASN'T EXIST";
+                    messageText.className = "text-red-500 font-bold";
+                } else if (existingDevice !== "NA" && existingDevice !== deviceID) {
+                    messageText.textContent = "The Key Is Already Login By Another User";
+                    messageText.className = "text-red-500 font-bold";
+                } else {
+                    await update(ref(db, "keys/" + keyID), { deviceID });
+                    localStorage.setItem("deviceID", deviceID);
+                    window.location.href = "playing.html";
+                }
+            });
+        });
+    </script>
+
+    <style>
+        body {
+            font-family: 'El Messiri', sans-serif;
+            background: #001f3f;
+            color: #00c8ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: rgba(0, 0, 20, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            width: 90%;
+            max-width: 380px;
+            border: 2px solid #00c8ff;
+            box-shadow: 0px 0px 10px #00c8ff;
+        }
+        .logo {
+            width: 130px;
+            margin: 0 auto 20px;
+            filter: drop-shadow(0px 0px 5px #00c8ff);
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0px 0px 5px #00c8ff;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            border-radius: 8px;
+            background: #112;
+            color: #00c8ff;
+            border: 2px solid #00c8ff;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: #00c8ff;
+            color: black;
+            font-weight: bold;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #0099cc;
+        }
+        .link {
+            margin-top: 15px;
+            color: #00c8ff;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        #messageText {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://i.postimg.cc/gcfdhrPQ/cropped-image-7.png" alt="Logo" class="logo">
+        <h1 class="title">User Login</h1>
+        <input type="text" id="keyInput" placeholder="Enter Key">
+        <p id="messageText"></p>
+        <button id="loginBtn">LOGIN</button>
+        <p class="link" id="buyLink">Don't Have Key? <span class="font-bold">Buy Here</span></p>
+    </div>
+
+</body>
+</html>
