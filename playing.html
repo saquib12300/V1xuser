@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Predictor</title>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap');
+
+        body {
+            font-family: 'El Messiri', sans-serif;
+            background-color: #101322;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            width: 400px;
+            background: #1a1d2e;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+        }
+        .box {
+            background: #292d3e;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .prediction {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .red { color: red; }
+        .green { color: green; }
+        .progress-bar {
+            background: #292d3e;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .progress {
+            height: 100%;
+            text-align: center;
+            font-weight: bold;
+            line-height: 20px;
+        }
+        .history-box {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #292d3e;
+        }
+        .logo {
+            width: 100px;
+            height: auto;
+            margin: 10px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://i.ibb.co/84rLdGft/cropped-image-7.png" alt="Logo" class="logo">
+
+        <div class="box">
+            <span><i class="fa-solid fa-calendar"></i> Period:</span>
+            <span id="period">Loading...</span>
+        </div>
+
+        <div class="box">
+            <span><i class="fa-solid fa-clock"></i> Timer:</span>
+            <span id="timer">00:30</span>
+        </div>
+
+        <div class="progress-bar">
+            <div id="win-chance" class="progress" style="width: 50%; background: lightgreen;">50% BIG</div>
+        </div>
+
+        <div class="prediction" id="prediction">Predicting...</div>
+
+        <div class="history-box">
+            <h3 class="text-lg font-bold"><i class="fa-solid fa-list"></i> Game History</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Number</th>
+                        <th>Size</th>
+                        <th>Color</th>
+                    </tr>
+                </thead>
+                <tbody id="history-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Bypass Protection: Check if User is Logged In
+        function checkLogin() {
+            const userKey = localStorage.getItem("userKey"); // Get stored user key
+            if (!userKey) {
+                window.location.href = "login.html"; // Redirect to login if key is missing
+            }
+        }
+
+        // Run login check before loading the page
+        checkLogin();
+
+        let lastPeriod = "";
+
+        function updatePeriodAndTimer() {
+            let now = new Date();
+            let elapsedSeconds = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) - (5 * 3600 + 30 * 60);
+            let totalPeriods = Math.floor(elapsedSeconds / 30);
+            let upcomingPeriod = totalPeriods + 1;
+            let formattedDate = now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0');
+            let periodNumber = "100005" + upcomingPeriod.toString().padStart(4, '0');
+
+            document.getElementById("period").innerText = formattedDate + periodNumber;
+            let remainingSeconds = 30 - (now.getSeconds() % 30);
+            document.getElementById("timer").innerText = "00:" + remainingSeconds.toString().padStart(2, '0');
+
+            if (remainingSeconds === 30 && periodNumber !== lastPeriod) {
+                lastPeriod = periodNumber;
+                generatePrediction(periodNumber);
+            }
+        }
+
+        function generatePrediction(period) {
+            let isBig = Math.random() > 0.5;
+            let number = isBig ? Math.floor(Math.random() * 5) + 5 : Math.floor(Math.random() * 5);
+            let size = isBig ? "BIG" : "SMALL";
+            let color = number % 2 === 0 ? "red" : "green";
+
+            document.getElementById("prediction").innerHTML = `<span class="${color}">${number} (${size})</span>`;
+            updateHistory(period, number, size, color);
+            updateWinningChance(size);
+        }
+
+        function updateWinningChance(size) {
+            let chance = Math.floor(Math.random() * 100) + 1;
+            let color = size === "BIG" ? "lightgreen" : "tomato";
+            document.getElementById("win-chance").style.width = chance + "%";
+            document.getElementById("win-chance").style.background = color;
+            document.getElementById("win-chance").innerText = chance + "% " + size;
+        }
+
+        function updateHistory(period, number, size, color) {
+            let historyList = document.getElementById("history-list");
+            let newRow = document.createElement("tr");
+
+            newRow.innerHTML = `
+                <td>${period}</td>
+                <td class="${color}">${number}</td>
+                <td>${size}</td>
+                <td style="color: ${color}">${color.toUpperCase()}</td>
+            `;
+
+            historyList.prepend(newRow);
+        }
+
+        setInterval(updatePeriodAndTimer, 1000);
+    </script>
+
+</body>
+</html>
