@@ -83,7 +83,6 @@
     </style>
 </head>
 <body>
-
     <div class="container">
         <img src="https://i.ibb.co/84rLdGft/cropped-image-7.png" alt="Logo" class="logo">
 
@@ -120,17 +119,6 @@
     </div>
 
     <script>
-        // Bypass Protection: Check if User is Logged In
-        function checkLogin() {
-            const userKey = localStorage.getItem("userKey"); // Get stored user key
-            if (!userKey) {
-                window.location.href = "login.html"; // Redirect to login if key is missing
-            }
-        }
-
-        // Run login check before loading the page
-        checkLogin();
-
         let lastPeriod = "";
 
         function updatePeriodAndTimer() {
@@ -186,6 +174,5 @@
 
         setInterval(updatePeriodAndTimer, 1000);
     </script>
-
 </body>
 </html>
