@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Predictor</title>
+    <title>V1X Pro</title>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -26,37 +26,26 @@
             padding: 20px;
             border-radius: 10px;
             text-align: center;
-            position: relative;
         }
-        .box {
-            background: #292d3e;
-            padding: 15px;
-            border-radius: 10px;
+        .status-bar {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
-        .prediction {
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-        .red { color: red; }
-        .green { color: green; }
-        .progress-bar {
+            justify-content: space-around;
             background: #292d3e;
-            height: 20px;
+            padding: 12px;
             border-radius: 10px;
-            overflow: hidden;
-            margin-top: 15px;
+            margin-bottom: 15px;
+            font-size: 16px;
         }
-        .progress {
-            height: 100%;
+        .status-item {
             text-align: center;
-            font-weight: bold;
-            line-height: 20px;
         }
+        .status-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        .green { color: lightgreen; }
+        .red { color: red; }
+        .yellow { color: yellow; }
         .history-box {
             max-height: 200px;
             overflow-y: auto;
@@ -74,33 +63,37 @@
         th {
             background-color: #292d3e;
         }
-        .logo {
-            width: 100px;
-            height: auto;
-            margin: 10px auto;
-            display: block;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="https://i.ibb.co/84rLdGft/cropped-image-7.png" alt="Logo" class="logo">
+        <h2 class="text-green-400 text-2xl font-bold">Ars Predictor V1X</h2>
 
-        <div class="box">
-            <span><i class="fa-solid fa-calendar"></i> Period:</span>
-            <span id="period">Loading...</span>
+        <div class="status-bar">
+            <div class="status-item">
+                <i class="fas fa-dice status-icon yellow"></i><br>
+                <span>Total Bets</span><br>
+                <span id="total-bets" class="yellow">0</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-trophy status-icon green"></i><br>
+                <span>Total Wins</span><br>
+                <span id="total-wins" class="green">0</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-skull-crossbones status-icon red"></i><br>
+                <span>Total Losses</span><br>
+                <span id="total-losses" class="red">0</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-bullseye status-icon green"></i><br>
+                <span>Accuracy</span><br>
+                <span id="accuracy" class="green">0.00%</span>
+            </div>
         </div>
 
-        <div class="box">
-            <span><i class="fa-solid fa-clock"></i> Timer:</span>
-            <span id="timer">00:30</span>
-        </div>
-
-        <div class="progress-bar">
-            <div id="win-chance" class="progress" style="width: 50%; background: lightgreen;">50% BIG</div>
-        </div>
-
-        <div class="prediction" id="prediction">Predicting...</div>
+        <h3 class="text-lg font-bold">Period: <span id="currentPeriod">-</span></h3>
+        <h3 class="text-lg font-bold">Prediction: <span id="prediction">-</span></h3>
 
         <div class="history-box">
             <h3 class="text-lg font-bold"><i class="fa-solid fa-list"></i> Game History</h3>
@@ -110,7 +103,7 @@
                         <th>Period</th>
                         <th>Number</th>
                         <th>Size</th>
-                        <th>Color</th>
+                        <th>Result</th>
                     </tr>
                 </thead>
                 <tbody id="history-list"></tbody>
@@ -119,60 +112,113 @@
     </div>
 
     <script>
-        let lastPeriod = "";
+        let historyData = [];
+        let totalWins = 0, totalLosses = 0, totalBets = 0;
+        let lastFetchedPeriod = null;
 
-        function updatePeriodAndTimer() {
-            let now = new Date();
-            let elapsedSeconds = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) - (5 * 3600 + 30 * 60);
-            let totalPeriods = Math.floor(elapsedSeconds / 30);
-            let upcomingPeriod = totalPeriods + 1;
-            let formattedDate = now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0');
-            let periodNumber = "100005" + upcomingPeriod.toString().padStart(4, '0');
+        function getRandomResult() {
+            return Math.random() < 0.5 ? "SMALL" : "BIG";
+        }
 
-            document.getElementById("period").innerText = formattedDate + periodNumber;
-            let remainingSeconds = 30 - (now.getSeconds() % 30);
-            document.getElementById("timer").innerText = "00:" + remainingSeconds.toString().padStart(2, '0');
+        async function fetchGameResult() {
+            try {
+                const payload = {
+                    pageSize: 10,
+                    pageNo: 1,
+                    typeId: 1,
+                    language: 0,
+                    random: "4a0522c6ecd8410496260e686be2a57c",
+                    signature: "334B5E70A0C9B8918B0B15E517E2069C",
+                    timestamp: Math.floor(Date.now() / 1000)
+                };
 
-            if (remainingSeconds === 30 && periodNumber !== lastPeriod) {
-                lastPeriod = periodNumber;
-                generatePrediction(periodNumber);
+                let response = await fetch("https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+                let data = await response.json();
+                let latestResult = data?.data?.list?.[0];
+
+                return latestResult ? { period: latestResult.issueNumber, result: latestResult.number } : null;
+            } catch (error) {
+                console.error("Error fetching game result:", error);
+                return null;
             }
         }
 
-        function generatePrediction(period) {
-            let isBig = Math.random() > 0.5;
-            let number = isBig ? Math.floor(Math.random() * 5) + 5 : Math.floor(Math.random() * 5);
-            let size = isBig ? "BIG" : "SMALL";
-            let color = number % 2 === 0 ? "red" : "green";
-
-            document.getElementById("prediction").innerHTML = `<span class="${color}">${number} (${size})</span>`;
-            updateHistory(period, number, size, color);
-            updateWinningChance(size);
+        function autoPredict() {
+            return { type: getRandomResult() };
         }
 
-        function updateWinningChance(size) {
-            let chance = Math.floor(Math.random() * 100) + 1;
-            let color = size === "BIG" ? "lightgreen" : "tomato";
-            document.getElementById("win-chance").style.width = chance + "%";
-            document.getElementById("win-chance").style.background = color;
-            document.getElementById("win-chance").innerText = chance + "% " + size;
+        async function updatePrediction() {
+            let apiResult = await fetchGameResult();
+
+            if (apiResult && apiResult.period !== lastFetchedPeriod) {
+                lastFetchedPeriod = apiResult.period;
+                let currentPeriod = (BigInt(apiResult.period) + 1n).toString();
+                let prediction = autoPredict();
+
+                document.getElementById("currentPeriod").innerText = currentPeriod;
+                document.getElementById("prediction").innerText = prediction.type;
+
+                historyData.unshift({
+                    period: currentPeriod,
+                    result: "-",
+                    prediction: prediction.type,
+                    resultStatus: "Pending"
+                });
+
+                updateHistory();
+                setTimeout(() => checkWinLoss(apiResult), 5000);
+            }
         }
 
-        function updateHistory(period, number, size, color) {
+        function checkWinLoss(apiResult) {
+            if (!apiResult) return;
+
+            let actualSize = apiResult.result >= 5 ? "BIG" : "SMALL";
+
+            historyData.forEach(item => {
+                if (item.period === apiResult.period) {
+                    item.result = apiResult.result;
+                    item.resultStatus = (item.prediction === actualSize) ? "WIN" : "LOSS";
+                }
+            });
+
+            updateStats();
+            updateHistory();
+        }
+
+        function updateStats() {
+            totalWins = historyData.filter(item => item.resultStatus === "WIN").length;
+            totalLosses = historyData.filter(item => item.resultStatus === "LOSS").length;
+            totalBets = historyData.length;
+
+            let accuracy = (totalWins / totalBets) * 100 || 0;
+
+            document.getElementById("total-bets").innerText = totalBets;
+            document.getElementById("total-wins").innerText = totalWins;
+            document.getElementById("total-losses").innerText = totalLosses;
+            document.getElementById("accuracy").innerText = accuracy.toFixed(2) + "%";
+        }
+
+        function updateHistory() {
             let historyList = document.getElementById("history-list");
-            let newRow = document.createElement("tr");
-
-            newRow.innerHTML = `
-                <td>${period}</td>
-                <td class="${color}">${number}</td>
-                <td>${size}</td>
-                <td style="color: ${color}">${color.toUpperCase()}</td>
-            `;
-
-            historyList.prepend(newRow);
+            historyList.innerHTML = historyData.map(item =>
+                `<tr>
+                    <td>${item.period}</td>
+                    <td>${item.result}</td>
+                    <td>${item.prediction}</td>
+                    <td class="${item.resultStatus === 'WIN' ? 'green' : 'red'}">${item.resultStatus}</td>
+                </tr>`
+            ).join("");
         }
 
-        setInterval(updatePeriodAndTimer, 1000);
+        setInterval(updatePrediction, 5000);
     </script>
 </body>
 </html>
